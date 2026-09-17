@@ -20,6 +20,7 @@ function App() {
   const [selectedIconIds, setSelectedIconIds] = useState<string[]>(initialState.icons);
   const [theme, setTheme] = useState<Theme>(initialState.theme);
   const [iconsPerLine, setIconsPerLine] = useState<number>(initialState.perline);
+  const [copyStatus, setCopyStatus] = useState<{ type: string; status: 'success' | 'fail' } | null>(null);
 
   useEffect(() => {
     const params = new URLSearchParams();
@@ -57,7 +58,8 @@ function App() {
     return `${baseUrl}/api/icons?i=${ids}&theme=${theme}&perline=${iconsPerLine}`;
   };
 
-  const handleCopy = (type: 'url' | 'md' | 'html') => {
+  const handleCopy = async (e: React.MouseEvent, type: 'url' | 'md' | 'html') => {
+    e.preventDefault();
     const url = generatePlaceholderUrl();
     if (!url) return;
 
@@ -68,8 +70,15 @@ function App() {
       textToCopy = `<a href="https://dockicons.dev"><img src="${url}" alt="DockIcons" /></a>`;
     }
 
-    // In a real app we'd use navigator.clipboard.writeText
-    alert(`Copied ${type.toUpperCase()}:\n\n${textToCopy}`);
+    try {
+      await navigator.clipboard.writeText(textToCopy);
+      setCopyStatus({ type, status: 'success' });
+      setTimeout(() => setCopyStatus(null), 2000);
+    } catch (err) {
+      console.error('Failed to copy!', err);
+      setCopyStatus({ type, status: 'fail' });
+      setTimeout(() => setCopyStatus(null), 2000);
+    }
   };
 
   return (
@@ -149,25 +158,28 @@ function App() {
             
             <div className="action-buttons">
               <button 
+                type="button"
                 className="btn primary" 
-                onClick={() => handleCopy('url')}
+                onClick={(e) => handleCopy(e, 'url')}
                 disabled={selectedIconIds.length === 0}
               >
-                Copy URL
+                {copyStatus?.type === 'url' ? (copyStatus.status === 'success' ? 'Copied!' : 'Copy failed') : 'Copy URL'}
               </button>
               <button 
+                type="button"
                 className="btn" 
-                onClick={() => handleCopy('md')}
+                onClick={(e) => handleCopy(e, 'md')}
                 disabled={selectedIconIds.length === 0}
               >
-                Copy Markdown
+                {copyStatus?.type === 'md' ? (copyStatus.status === 'success' ? 'Copied!' : 'Copy failed') : 'Copy Markdown'}
               </button>
               <button 
+                type="button"
                 className="btn" 
-                onClick={() => handleCopy('html')}
+                onClick={(e) => handleCopy(e, 'html')}
                 disabled={selectedIconIds.length === 0}
               >
-                Copy HTML
+                {copyStatus?.type === 'html' ? (copyStatus.status === 'success' ? 'Copied!' : 'Copy failed') : 'Copy HTML'}
               </button>
             </div>
           </div>
