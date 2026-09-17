@@ -12,8 +12,8 @@ export interface IconVariantPaths {
 }
 
 export interface IconData {
-  id: string; // e.g., 'react'
-  displayName: string; // e.g., 'React'
+  id: string;
+  displayName: string;
   category: IconCategory;
   paths: IconVariantPaths;
 }

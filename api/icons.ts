@@ -10,9 +10,7 @@ export default async function handler(req: any, res: any) {
     const safeTheme = theme === 'dark' ? 'dark' : 'light';
     const safePerLine = typeof perline === 'string' ? parseInt(perline, 10) : 15;
 
-    // Node-based image fetcher that reads from the filesystem
     const imageFetcher = async (imagePath: string) => {
-      // Remove leading slash if present to safely join
       const relativePath = imagePath.startsWith('/') ? imagePath.slice(1) : imagePath;
       const absolutePath = path.join(process.cwd(), 'public', relativePath);
       
@@ -30,7 +28,6 @@ export default async function handler(req: any, res: any) {
       imageFetcher
     });
 
-    // Set headers
     res.setHeader('Content-Type', 'image/svg+xml');
     res.setHeader('Cache-Control', 'public, max-age=86400, s-maxage=31536000, stale-while-revalidate');
     
