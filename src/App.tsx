@@ -100,8 +100,6 @@ function App() {
     setDraggedIndex(null);
   };
   const imgUrl = generatePlaceholderUrl();
-  const mdCode = imgUrl ? `[![DockIcons](${imgUrl})](https://dockicons.dev)` : '';
-  const htmlCode = imgUrl ? `<a href="https://dockicons.dev">\n  <img src="${imgUrl}" alt="DockIcons" />\n</a>` : '';
 
   return (
     <div className="app-container">
