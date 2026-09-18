@@ -8,10 +8,19 @@ const getInitialState = () => {
   if (typeof window === 'undefined') return { icons: [], theme: 'light' as Theme, perline: 15 };
   const params = new URLSearchParams(window.location.search);
   const themeParam = params.get('theme');
+  
+  const rawIcons = params.get('i')?.split(',').filter(Boolean) || [];
+  const validIconIds = icons.map(i => i.id);
+  const filteredIcons = rawIcons.filter(id => validIconIds.includes(id));
+
+  let rawPerline = Number(params.get('perline'));
+  if (!rawPerline || isNaN(rawPerline)) rawPerline = 10;
+  const clampedPerline = Math.max(1, Math.min(10, rawPerline));
+
   return {
-    icons: params.get('i')?.split(',').filter(Boolean) || [],
+    icons: filteredIcons,
     theme: (themeParam === 'dark' || themeParam === 'light' ? themeParam : 'light') as Theme,
-    perline: Number(params.get('perline')) || 15
+    perline: clampedPerline
   };
 };
 
@@ -21,6 +30,7 @@ function App() {
   const [theme, setTheme] = useState<Theme>(initialState.theme);
   const [iconsPerLine, setIconsPerLine] = useState<number>(initialState.perline);
   const [copyStatus, setCopyStatus] = useState<{ type: string; status: 'success' | 'fail' } | null>(null);
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
 
   useEffect(() => {
     const params = new URLSearchParams();
@@ -30,7 +40,7 @@ function App() {
     if (theme !== 'light') {
       params.set('theme', theme);
     }
-    if (iconsPerLine !== 15) {
+    if (iconsPerLine !== 10) {
       params.set('perline', iconsPerLine.toString());
     }
     
@@ -81,14 +91,47 @@ function App() {
     }
   };
 
+  const handleDrop = (index: number) => {
+    if (draggedIndex === null || draggedIndex === index) return;
+    const newSelectedIds = [...selectedIconIds];
+    const item = newSelectedIds.splice(draggedIndex, 1)[0];
+    newSelectedIds.splice(index, 0, item);
+    setSelectedIconIds(newSelectedIds);
+    setDraggedIndex(null);
+  };
+  const imgUrl = generatePlaceholderUrl();
+  const mdCode = imgUrl ? `[![DockIcons](${imgUrl})](https://dockicons.dev)` : '';
+  const htmlCode = imgUrl ? `<a href="https://dockicons.dev">\n  <img src="${imgUrl}" alt="DockIcons" />\n</a>` : '';
+
   return (
     <div className="app-container">
-      <header>
-        <h1>DockIcons</h1>
-        <p>Premium macOS-inspired icon sets for your READMEs and websites.</p>
-      </header>
+      <section className="hero-section">
+        <div className="hero-content">
+          <h1>DockIcons</h1>
+          <p className="hero-subtitle">Premium, macOS-style developer icons for your GitHub READMEs and websites. Instantly generated, fully customizable, and beautifully minimal.</p>
+          <button 
+            className="btn primary cta-btn" 
+            onClick={() => document.getElementById('icon-selector')?.scrollIntoView({ behavior: 'smooth' })}
+          >
+            Start Generating
+          </button>
+        </div>
+        <div className="hero-visual">
+          <div className="hero-icon-cluster">
+            {icons.slice(0, 4).map((icon, idx) => (
+              <img 
+                key={`hero-${icon.id}`} 
+                src={theme === 'light' ? icon.paths.light : icon.paths.dark} 
+                alt={icon.displayName}
+                className={`hero-icon hero-icon-${idx + 1}`}
+                draggable={false}
+              />
+            ))}
+          </div>
+        </div>
+      </section>
 
-      <div className="controls-bar">
+      <div id="icon-selector" className="controls-bar">
         <div className="control-group">
           <label htmlFor="theme-select">Theme</label>
           <select 
@@ -107,9 +150,13 @@ function App() {
             type="number" 
             id="per-line" 
             min="1" 
-            max="50" 
+            max="10" 
             value={iconsPerLine} 
-            onChange={(e) => setIconsPerLine(Number(e.target.value) || 15)}
+            onChange={(e) => {
+              let val = Number(e.target.value);
+              if (isNaN(val) || val === 0) val = 10;
+              setIconsPerLine(Math.max(1, Math.min(10, val)));
+            }}
           />
         </div>
       </div>
@@ -141,46 +188,73 @@ function App() {
         <section>
           <h2 className="section-title">Preview</h2>
           <div className="preview-container">
-            <div className="preview-rendered">
+            <div 
+              className="preview-rendered"
+              style={{
+                display: 'grid',
+                gridTemplateColumns: `repeat(${iconsPerLine}, max-content)`,
+                justifyContent: 'center'
+              }}
+            >
               {selectedIconsData.length === 0 ? (
                 <div className="empty-preview">Select icons to preview them here</div>
               ) : (
-                selectedIconsData.map(icon => (
+                selectedIconsData.map((icon, index) => (
                   <img 
                     key={`preview-${icon.id}`}
                     src={theme === 'light' ? icon.paths.light : icon.paths.dark} 
                     alt={icon.displayName} 
-                    draggable={false}
+                    draggable
+                    onDragStart={() => setDraggedIndex(index)}
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={() => handleDrop(index)}
+                    onDragEnd={() => setDraggedIndex(null)}
+                    style={{
+                      cursor: 'grab',
+                      opacity: draggedIndex === index ? 0.5 : 1,
+                      transition: 'opacity 0.2s'
+                    }}
                   />
                 ))
               )}
             </div>
             
-            <div className="action-buttons">
-              <button 
-                type="button"
-                className="btn primary" 
-                onClick={(e) => handleCopy(e, 'url')}
-                disabled={selectedIconIds.length === 0}
-              >
-                {copyStatus?.type === 'url' ? (copyStatus.status === 'success' ? 'Copied!' : 'Copy failed') : 'Copy URL'}
-              </button>
-              <button 
-                type="button"
-                className="btn" 
-                onClick={(e) => handleCopy(e, 'md')}
-                disabled={selectedIconIds.length === 0}
-              >
-                {copyStatus?.type === 'md' ? (copyStatus.status === 'success' ? 'Copied!' : 'Copy failed') : 'Copy Markdown'}
-              </button>
-              <button 
-                type="button"
-                className="btn" 
-                onClick={(e) => handleCopy(e, 'html')}
-                disabled={selectedIconIds.length === 0}
-              >
-                {copyStatus?.type === 'html' ? (copyStatus.status === 'success' ? 'Copied!' : 'Copy failed') : 'Copy HTML'}
-              </button>
+            <div className="export-section">
+              <div className="export-card">
+                <span className="export-title">Image URL</span>
+                <button 
+                  type="button" 
+                  className="btn-copy"
+                  onClick={(e) => handleCopy(e, 'url')}
+                  disabled={!imgUrl}
+                >
+                  {copyStatus?.type === 'url' ? (copyStatus.status === 'success' ? 'Copied!' : 'Failed') : 'Copy'}
+                </button>
+              </div>
+              
+              <div className="export-card">
+                <span className="export-title">Markdown</span>
+                <button 
+                  type="button" 
+                  className="btn-copy"
+                  onClick={(e) => handleCopy(e, 'md')}
+                  disabled={!imgUrl}
+                >
+                  {copyStatus?.type === 'md' ? (copyStatus.status === 'success' ? 'Copied!' : 'Failed') : 'Copy'}
+                </button>
+              </div>
+
+              <div className="export-card">
+                <span className="export-title">HTML</span>
+                <button 
+                  type="button" 
+                  className="btn-copy"
+                  onClick={(e) => handleCopy(e, 'html')}
+                  disabled={!imgUrl}
+                >
+                  {copyStatus?.type === 'html' ? (copyStatus.status === 'success' ? 'Copied!' : 'Failed') : 'Copy'}
+                </button>
+              </div>
             </div>
           </div>
         </section>

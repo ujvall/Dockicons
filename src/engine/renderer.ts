@@ -10,7 +10,6 @@ export interface RenderOptions {
 
 export const ICON_SIZE = 64;
 export const GAP = 16;
-export const PADDING = 24;
 
 export async function generateIconsSvg(options: RenderOptions): Promise<string> {
   const { iconIds, theme, perLine, imageFetcher } = options;
@@ -25,16 +24,15 @@ export async function generateIconsSvg(options: RenderOptions): Promise<string> 
 
   const columns = Math.min(validIcons.length, perLine);
   const rows = Math.ceil(validIcons.length / perLine);
-  
-  const width = (columns * ICON_SIZE) + ((columns - 1) * GAP) + (PADDING * 2);
-  const height = (rows * ICON_SIZE) + ((rows - 1) * GAP) + (PADDING * 2);
+  const width = (columns * ICON_SIZE) + ((columns - 1) * GAP);
+  const height = (rows * ICON_SIZE) + ((rows - 1) * GAP);
 
   const imageElementsPromises = validIcons.map(async (icon, index) => {
     const col = index % perLine;
     const row = Math.floor(index / perLine);
 
-    const x = PADDING + (col * (ICON_SIZE + GAP));
-    const y = PADDING + (row * (ICON_SIZE + GAP));
+    const x = col * (ICON_SIZE + GAP);
+    const y = row * (ICON_SIZE + GAP);
 
     const imagePath = theme === 'light' ? icon.paths.light : icon.paths.dark;
     
