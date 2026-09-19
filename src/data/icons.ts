@@ -45,5 +45,14 @@ export const icons: IconData[] = [
       light: '/icons/python/light.png',
       dark: '/icons/python/dark.png'
     }
+  },
+  {
+    id: 'react',
+    displayName: 'React',
+    category: 'framework',
+    paths: {
+      light: '/icons/React/light.png',
+      dark: '/icons/React/dark.png'
+    }
   }
 ];
